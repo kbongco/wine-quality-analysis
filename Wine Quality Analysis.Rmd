@@ -1,0 +1,142 @@
+---
+output:
+  html_notebook: default
+  html_document: default
+---
+Project Report 
+
+Background
+We are given a data set that is related to the red and white variants
+of the "Vinho Verde" wine from Portugal. In the dataset, the data
+set contains the various chemical test that were done on the wines
+as well as an overall assesment on from at least three professional 
+taste testers. 
+
+Initial EDA
+```{r}
+red <- read.csv('winequality-red.csv', sep=";")
+white <- read.csv('winequality-white.csv', sep=";")
+red2 <- read.csv('winequality-red.csv', sep=";")
+white2 <-read.csv('winequality-white.csv', sep=";")
+#Adding a column for color since we're comparing quality
+
+red['color'] <- 'red'
+white['color'] <- 'white'
+redandwhite <- rbind(red,white)
+```
+
+First we read the two .csv files for the red and white wine data, while adding a new column into each file called 'color' to help us distinguish what is what. 
+
+```{r}
+names(redandwhite)
+```
+
+Let's check and see if there are any missing values before diving deeper.
+```{r}
+sum(is.na(redandwhite))
+```
+
+We don't have any null values, so now I'm going to dig deeper by looking at the values. 
+
+```{r}
+summary(redandwhite)
+```
+
+
+```{r}
+str(redandwhite)
+```
+
+Some Observerations so far from the summary: 
+-There are no basic wines in this dataset (Basic in pH usually means anything greater than 7 on the pH scale)
+-The wine is pretty acidic, the range is 2.7-4, and the mean is 3.2
+-Free SO2 (Sulfur Dioxide) has an outlier of 289.00 ppm. This is very high since the 3rd quarter is only at 41.00 and the mean is at 30.53
+-There is a very sweet wine at 65.800 in residual sugar, the 75% residual sugar is at 8.1
+-The alcohol levels are pretty close to each other, the one with the lowest amount of alcohol is at 8 and it ranges all the way to 14.
+-Density is pretty consistent to each other. The min is at 0.9871 and the max being at 1.03.
+-Quality ranges from 3 to 9. 
+
+Initial EDA. Next I'll be taking a deeper look of the qualities that were measured. 
+
+```{r}
+RedQuality <- summary(red$quality)
+RedQuality
+```
+
+```{r}
+ggplot(redandwhite, aes(x=quality, fill = color)) + geom_histogram(alpha =0.5, position = "identity", binwidth = 1) + scale_x_continuous(breaks = seq(3,9,1), lim =c(3,10))
+```
+
+We know that there a different number of obserations of red and white wine in the dataset. But just by looking at this, you can tell that it is at a normal distribution. 
+
+Checking out the alcohol level: 
+
+```{r}
+
+summary(redandwhite$alcohol)
+```
+
+```{r}
+ggplot(redandwhite, aes(x=alcohol, fill = color)) + geom_histogram(alpha = 0.5, position = "identity", binwidth = 1) + scale_x_continuous(breaks = seq(8,15,1), lim= c(8,15))
+```
+
+
+Looking at the numbers for density, I have a feeling that if I were to model this, the graphs would look weird. 
+
+```{r}
+ggplot(redandwhite, aes(x=density, fill = color)) + 
+  geom_histogram(alpha =0.5, position = "identity", binwidth = 0.0002)+
+  scale_x_log10(lim = c(min(redandwhite$density), 1.00370),
+                breaks = seq(min(redandwhite$density), 1.00370, 0.005))
+
+```
+When we look at the summary for the density, there are outliers. Initially I graphed this as a regular histogram but it was not clear enough for me to see the trends. After searching, I decided to use log10. Red wine's density normally distributed while the density distribution for white wine is bimodal with two maximum values. 
+
+Taking a look at Sulfur Dioxide
+
+```{r}
+summary(redandwhite$free.sulfur.dioxide)
+```
+
+
+As mentioned previously, looking at the Sulfur Dioxide, we have a very large outlier of 289.00 as the max. 
+
+```{r}
+ggplot(redandwhite, aes(x =free.sulfur.dioxide, fill = color)) +
+  geom_histogram(alpha = 0.5, position = "identity", binwidth =1) +
+  scale_x_continuous(breaks = seq(min(redandwhite$free.sulfur.dioxide),
+                                  max(redandwhite$free.sulfur.dioxide), 20))
+```
+
+THis is just free sulfur dioxide, we should also take a look at the total amount. 
+
+```{r}
+summary(redandwhite$total.sulfur.dioxide)
+```
+
+```{r}
+ggplot(redandwhite, aes(x = total.sulfur.dioxide, fill = color))+ geom_histogram(alpha = 0.5, position = "identity", binwidth = 1) + scale_x_continuous(breaks = seq(min(redandwhite$total.sulfur.dioxide), max(redandwhite$total.sulfur.dioxide),20))
+```
+Breaking down both the free and the total Sulfur Dioxide, there is a normal distribution in Sulfur Dioxide for White wine, whereas with the red wine has a log-normal distribution. While it seems like the red wine total sulfur dioxide has no outliers, looking deeper for the red wine there is a total amount of 290ppm. 
+
+Looking at Correlation between factors in Red and White Wine
+
+```{r}
+redtitle <- "Red Wine Correlation"
+corrplot(redmat, order = "AOE", method = "color", addCoef.col ='black', number.cex = 0.5, title = redtitle, line = -1)
+```
+Looking at this for red wine we can infer that:
+-Total Sulfur Dioxide and Free Sulfur Dioxide that there is a relationship between them. 
+-pH and fixed acidity are related 
+-Alcohol and quality have an inverse relationship
+```{r}
+whitetitle <- "White Wine Correlation"
+corrplot(whitemat, order = "AOE", method = "color", addCoef.col ='black', number.cex = 0.5, title = whitetitle, line = -1)
+```
+-Low Density means high alcohol content
+-High density means high residual sugar 
+-Again, there is a position relationship with the free and total sulfur dioxide. 
+
+Creating Boxplots and 
+checking out Outliers
+
